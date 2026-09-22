@@ -13,3 +13,5 @@ description: Obliga al agente a documentar cada cambio arquitectónico, de base 
 3. **Mantenimiento de la Arquitectura**: Si el cambio implica agregar una nueva tabla a la base de datos, un nuevo módulo principal (ej. Odontograma, Facturación), o una nueva tecnología al stack, también debes actualizar las secciones correspondientes (`2. Arquitectura y Tecnologías`, `3. Estructura de la Base de Datos` o `4. Funcionalidades Base`) del archivo `auditoria.md`.
 
 4. **Verificación Antes de Finalizar**: Antes de dar por terminada una tarea compleja, asegúrate de haber actualizado `auditoria.md`. No le pidas al usuario que lo haga, hazlo tú mismo usando tus herramientas de edición de archivos.
+
+5. **Control de Versiones (Git)**: El agente tiene permitido realizar `git commit` de sus cambios con mensajes descriptivos, pero **NUNCA debe ejecutar `git push`**. El push remoto siempre será responsabilidad del usuario, para que tenga el control final antes de subir el código.
