@@ -38,3 +38,4 @@ La base de datos relacional en PostgreSQL está compuesta por las siguientes tab
 ### Historial de Cambios
 
 - **2026-09-22** | **Inicialización del MVP** | Se construyó la estructura base en Next.js 15, se configuró Tailwind y Shadcn UI. Se implementaron las entidades principales en Supabase con RLS y el constraint de exclusión para evitar solapamiento de citas. Se crearon las vistas de Dashboard, Agenda, Pacientes, Profesionales y Servicios.
+- **2026-09-22** | **Creación de usuario Admin** | Se insertó el usuario `robinsonsolorzano99@gmail.com` con rol de administrador en la tabla de autenticación de Supabase (`auth.users` y `auth.identities`) usando un script SQL para asegurar el acceso a la plataforma.
