@@ -5,6 +5,8 @@ import { getProfessionals } from '@/features/professionals/services';
 import { getServices, getRooms } from '@/features/services/services';
 import { DashboardOverview } from '@/features/dashboard/components/dashboard-overview';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Dashboard - OdontoClinic',
   description: 'Panel de control de gestión odontológica y citas del día',

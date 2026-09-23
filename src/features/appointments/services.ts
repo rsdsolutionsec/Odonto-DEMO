@@ -33,12 +33,15 @@ export async function getAppointments(filters?: AppointmentFilters): Promise<App
     if (filters?.patientId) query = query.eq('patient_id', filters.patientId);
 
     const { data, error } = await query;
-    if (error || !data) {
+    if (error) {
+      console.error('getAppointments error:', error);
       return [];
     }
+    if (!data) return [];
 
     return data as unknown as AppointmentWithDetails[];
-  } catch {
+  } catch (err) {
+    console.error('getAppointments exception:', err);
     return [];
   }
 }

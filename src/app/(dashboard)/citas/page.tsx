@@ -5,6 +5,8 @@ import { getProfessionals } from '@/features/professionals/services';
 import { getServices, getRooms } from '@/features/services/services';
 import { AppointmentTable } from '@/features/appointments/components/appointment-table';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Gestión de Citas - OdontoClinic',
   description: 'Control de citas y estados clínicos',

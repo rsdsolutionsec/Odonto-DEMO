@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { parseISO, addMinutes, isBefore, isAfter, format, parse, isValid } from 'date-fns';
+import { parseISO, addMinutes, isBefore, isAfter, isValid } from 'date-fns';
 import { TimeSlot } from '@/types/app.types';
 
 export interface AvailabilityParams {
@@ -31,8 +31,9 @@ export async function calculateAvailableSlots({
 
     const durationMinutes = service.duration_minutes;
 
-    // 2. Determinar día de la semana (0: Domingo, 1: Lunes, ... 6: Sábado)
-    const targetDate = parse(date, 'yyyy-MM-dd', new Date());
+    // 2. Determinar día de la semana (0: Domingo, 1: Lunes, ... 6: Sábado) usando fecha local
+    const [year, month, day] = date.split('-').map(Number);
+    const targetDate = new Date(year, month - 1, day);
     if (!isValid(targetDate)) {
       return { slots: [], error: 'Fecha no válida' };
     }
@@ -51,9 +52,9 @@ export async function calculateAvailableSlots({
       return { slots: [] };
     }
 
-    // 4. Obtener citas existentes en esa fecha para el profesional o para el sillón
-    const startOfDay = `${date}T00:00:00Z`;
-    const endOfDay = `${date}T23:59:59Z`;
+    // 4. Obtener citas existentes en esa fecha (considerando la zona horaria clínica Ecuador UTC-5)
+    const startOfDay = new Date(`${date}T00:00:00-05:00`).toISOString();
+    const endOfDay = new Date(`${date}T23:59:59-05:00`).toISOString();
 
     const { data: appointments, error: apptError } = await supabase
       .from('appointments')
@@ -80,8 +81,12 @@ export async function calculateAvailableSlots({
 
     // Recorrer cada turno laboral del profesional
     for (const schedule of schedules) {
-      const shiftStart = parse(`${date} ${schedule.start_time}`, 'yyyy-MM-dd HH:mm:ss', new Date());
-      const shiftEnd = parse(`${date} ${schedule.end_time}`, 'yyyy-MM-dd HH:mm:ss', new Date());
+      // Usar zona horaria clínica de Ecuador (-05:00) para garantizar consistencia absoluta
+      const cleanStartTime = schedule.start_time.length === 5 ? `${schedule.start_time}:00` : schedule.start_time;
+      const cleanEndTime = schedule.end_time.length === 5 ? `${schedule.end_time}:00` : schedule.end_time;
+
+      const shiftStart = new Date(`${date}T${cleanStartTime}-05:00`);
+      const shiftEnd = new Date(`${date}T${cleanEndTime}-05:00`);
 
       let currentSlotStart = shiftStart;
 

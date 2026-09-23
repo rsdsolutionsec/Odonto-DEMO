@@ -5,6 +5,8 @@ import { getProfessionals } from '@/features/professionals/services';
 import { getServices, getRooms } from '@/features/services/services';
 import { AgendaView } from '@/features/appointments/components/agenda-view';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Agenda Odontológica - OdontoClinic',
   description: 'Control de citas, horarios y sillones de atención clínica',

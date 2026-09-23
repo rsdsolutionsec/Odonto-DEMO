@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -10,9 +10,10 @@ import {
   Clock,
   User,
   MapPin,
+  CalendarCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
 import { AppointmentStatusBadge } from '@/components/ui/status-badge';
 import {
   AppointmentWithDetails,
@@ -56,6 +57,11 @@ export function AgendaView({
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
+  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>(initialAppointments);
+
+  useEffect(() => {
+    setAppointments(initialAppointments);
+  }, [initialAppointments]);
 
   // Modales
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -63,7 +69,7 @@ export function AgendaView({
     useState<AppointmentWithDetails | null>(null);
 
   // Filtros de citas
-  const filteredAppointments = initialAppointments.filter((appt) => {
+  const filteredAppointments = appointments.filter((appt) => {
     if (selectedProfessionalId && appt.professional_id !== selectedProfessionalId) return false;
     if (selectedRoomId && appt.room_id !== selectedRoomId) return false;
     return true;
@@ -93,8 +99,14 @@ export function AgendaView({
     end: addDays(weekStart, 5), // Lunes a Sábado
   });
 
-  // Horas del día (08:00 a 18:00)
-  const hours = Array.from({ length: 11 }, (_, i) => i + 8);
+  // Horas del día ampliadas (07:00 a 20:00) para cobertura clínica completa
+  const hours = Array.from({ length: 14 }, (_, i) => i + 7);
+
+  // Citas de la semana actual para banner de resumen
+  const currentWeekAppointments = filteredAppointments.filter((appt) => {
+    const apptDate = parseISO(appt.start_time);
+    return weekDays.some((day) => isSameDay(apptDate, day));
+  });
 
   return (
     <div className="space-y-4">
@@ -109,12 +121,14 @@ export function AgendaView({
             <button
               onClick={handlePrev}
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 transition-colors"
+              title="Anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleNext}
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 transition-colors"
+              title="Siguiente"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -203,6 +217,44 @@ export function AgendaView({
         </div>
       </div>
 
+      {/* Resumen de Citas de la Semana Actual */}
+      {currentWeekAppointments.length > 0 && (
+        <div className="bg-gradient-to-r from-teal-50 to-blue-50 dark:from-slate-800 dark:to-slate-850 p-3.5 rounded-2xl border border-teal-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+            <div className="w-7 h-7 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
+              <CalendarCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {currentWeekAppointments.length} cita{currentWeekAppointments.length > 1 ? 's' : ''} programada{currentWeekAppointments.length > 1 ? 's' : ''} esta semana
+              </span>
+              <span className="text-slate-500 ml-1.5 hidden md:inline">
+                (Haz clic en cualquier tarjeta para gestionar el estado o cancelar)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {currentWeekAppointments.slice(0, 4).map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setSelectedAppointment(a)}
+                className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] font-medium text-slate-800 dark:text-slate-200 hover:border-brand-500 shadow-2xs flex items-center gap-1.5 transition-all"
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: a.service.color }} />
+                <span>{a.patient.first_name}</span>
+                <span className="text-slate-400 font-mono text-[10px]">{format(parseISO(a.start_time), 'HH:mm')}</span>
+              </button>
+            ))}
+            {currentWeekAppointments.length > 4 && (
+              <span className="text-xs text-slate-500 font-medium">
+                +{currentWeekAppointments.length - 4} más
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* VISTA SEMANA */}
       {viewMode === 'week' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
@@ -242,7 +294,7 @@ export function AgendaView({
                 const hourFormatted = `${hour.toString().padStart(2, '0')}:00`;
 
                 return (
-                  <div key={hour} className="grid grid-cols-7 min-h-[90px]">
+                  <div key={hour} className="grid grid-cols-7 min-h-[85px]">
                     {/* Columna de Hora */}
                     <div className="p-2 text-right pr-3 text-xs font-semibold text-slate-400 border-r border-slate-200 dark:border-slate-800 bg-slate-50/20">
                       {hourFormatted}
@@ -272,27 +324,29 @@ export function AgendaView({
                                 e.stopPropagation();
                                 setSelectedAppointment(appt);
                               }}
-                              className="p-1.5 rounded-lg border text-left shadow-xs transition-all hover:scale-[1.01] hover:shadow-md cursor-pointer"
+                              className="p-1.5 rounded-xl border text-left shadow-xs transition-all hover:scale-[1.01] hover:shadow-md cursor-pointer space-y-1"
                               style={{
                                 backgroundColor: `${appt.service.color}15`,
-                                borderColor: `${appt.service.color}60`,
+                                borderColor: `${appt.service.color}50`,
                               }}
                             >
-                              <div className="flex items-center justify-between gap-1 leading-none mb-1">
-                                <span className="text-[10px] font-bold text-slate-800 truncate">
+                              <div className="flex items-center justify-between gap-1 leading-none">
+                                <span className="text-[11px] font-bold text-slate-900 truncate">
                                   {appt.patient.first_name} {appt.patient.last_name}
                                 </span>
                                 <span
-                                  className="w-2 h-2 rounded-full shrink-0"
+                                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-white"
                                   style={{ backgroundColor: appt.professional.color }}
-                                  title={`Dr. ${appt.professional.first_name}`}
+                                  title={`Dr. ${appt.professional.first_name} ${appt.professional.last_name}`}
                                 />
                               </div>
                               <p className="text-[10px] text-slate-600 truncate font-medium">
                                 {appt.service.name}
                               </p>
-                              <div className="flex items-center justify-between mt-1 text-[9px] text-slate-500">
-                                <span>{format(parseISO(appt.start_time), 'HH:mm')}</span>
+                              <div className="flex items-center justify-between text-[9px] text-slate-500 pt-0.5">
+                                <span className="font-mono font-semibold">
+                                  {format(parseISO(appt.start_time), 'HH:mm')} - {format(parseISO(appt.end_time), 'HH:mm')}
+                                </span>
                                 <AppointmentStatusBadge status={appt.status} />
                               </div>
                             </div>
@@ -311,9 +365,15 @@ export function AgendaView({
       {/* VISTA DÍA */}
       {viewMode === 'day' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-          <h3 className="text-sm font-bold text-slate-800 mb-4 capitalize">
-            Agenda del {format(currentDate, "EEEE d 'de' MMMM", { locale: es })}
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">
+              Agenda del {format(currentDate, "EEEE d 'de' MMMM, yyyy", { locale: es })}
+            </h3>
+            <span className="text-xs text-slate-500 font-medium">
+              {filteredAppointments.filter((a) => isSameDay(parseISO(a.start_time), currentDate)).length} cita(s)
+            </span>
+          </div>
+
           <div className="space-y-3">
             {filteredAppointments
               .filter((a) => isSameDay(parseISO(a.start_time), currentDate))
@@ -327,12 +387,12 @@ export function AgendaView({
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-sm">
+                      <span className="font-bold text-slate-900 dark:text-white text-sm">
                         {appt.patient.first_name} {appt.patient.last_name}
                       </span>
                       <AppointmentStatusBadge status={appt.status} />
                     </div>
-                    <p className="text-xs text-slate-600 font-medium">{appt.service.name}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">{appt.service.name}</p>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -350,7 +410,7 @@ export function AgendaView({
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setSelectedAppointment(appt)}>
-                    Gestionar
+                    Gestionar Cita
                   </Button>
                 </div>
               ))}
@@ -385,13 +445,13 @@ export function AgendaView({
                     setCurrentDate(day);
                     setViewMode('day');
                   }}
-                  className={`min-h-[90px] p-2 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors ${
-                    isToday ? 'border-brand-500 bg-brand-50/20' : 'border-slate-200'
+                  className={`min-h-[90px] p-2 border rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                    isToday ? 'border-brand-500 bg-brand-50/20' : 'border-slate-200 dark:border-slate-800'
                   }`}
                 >
                   <p
                     className={`text-xs font-bold ${
-                      isToday ? 'text-brand-600' : 'text-slate-700'
+                      isToday ? 'text-brand-600' : 'text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     {format(day, 'd')}
